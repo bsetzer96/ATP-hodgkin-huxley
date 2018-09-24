@@ -15,15 +15,15 @@ delta=0.05      #step size
 h=delta         #runge kutta step
 T= (t2-t1)/delta+1 #length of time vector
 t=np.linspace(int(t1),int(t2),int(T)) #time vector
-n=1                  #number of pyramidal cells
-m=1                 #number of fs cells
+n= 6                #number of pyramidal cells
+m=6                 #number of fs cells
 
 ## paramenters
 y0_py=np.zeros(6*n)    #initial condition
-y0_py[::6]=-70
-y0_py[5::6]=2
+y0_py[:n]=-70
+y0_py[n*5:]=2
 y0_fs= np.zeros(4*m)
-y0_fs[::6]=-70
+y0_fs[:m]=-70
 y0_x = np.zeros(n+m)
 
 
@@ -66,17 +66,17 @@ def hodghuxATP(state, n, m,p):
     state_fs=state[6*n:(6*n+4*m)]
     state_con=state[(6*n+4*m):]
     
-    v_py= state_py[::6]
-    m_py= state_py[1::6]
-    n_py= state_py[2::6]
-    h_py= state_py[3::6]
-    Na= state_py[4::6]
-    ATP= state_py[5::6]
+    v_py= state_py[:n]
+    m_py= state_py[n:n*2]
+    n_py= state_py[n*2:n*3]
+    h_py= state_py[n*3:n*4]
+    Na= state_py[n*4:n*5]
+    ATP= state_py[n*5:]
     
-    v_fs= state_fs[0::4]
-    m_fs= state_fs[1::4]
-    n_fs= state_fs[2::4]
-    h_fs= state_fs[3::4]
+    v_fs= state_fs[:m]
+    m_fs= state_fs[m:m*2]
+    n_fs= state_fs[m*2:m*3]
+    h_fs= state_fs[m*3:]
     
     x_AMPA = state_con[0:n]
     x_GABA = state_con[n:]
@@ -132,31 +132,30 @@ def hodghuxATP(state, n, m,p):
     I_GABA_py=np.zeros((m,n))
     I_GABA_fs=np.zeros((m,m))
     
-    #ISSUE MUSTT BE WITH AMPA/GABA B.C OF DIRECTION OF BLOW UP
     for j in np.arange(n):#post synaptic neuron recieving input (to)
         for i in np.arange(n): #presynaptic neuron giving input (from)
             I_AMPA_py[i,j]= g_AMPA_py*x_AMPA[i]*(v_py[j]-E_AMPA) #PY to PY
+        for i in np.arange(m): #from
+            I_GABA_py[i,j]=g_GABA_py*x_GABA[i]*(v_py[j]-E_GABA) # FS to PY           
     for j in np.arange(m): #to
         for i in np.arange(n): #from i-->j
             I_AMPA_fs[i,j]= g_AMPA_fs*x_AMPA[i]*(v_fs[j]-E_AMPA) #PY to FS
-    for j in np.arange(m): #to
         for i in np.arange(m): #from
             I_GABA_fs[i,j]=g_GABA_fs*x_GABA[i]*(v_fs[j]-E_GABA) # FS to FS
-    for j in np.arange(n): #to
-        for i in np.arange(m): #from
-            I_GABA_py[i,j]=g_GABA_py*x_GABA[i]*(v_py[j]-E_GABA) # FS to PY
     
     #take out connections to self
     I_AMPA_py[np.eye(n)>0]=0
     I_GABA_fs[np.eye(m)>0]=0
     
     #summing total input from all other neurons
-    #I_AMPA_py=I_AMPA_py.sum(axis=0)
-    I_AMPA_py=0
+    I_AMPA_py=I_AMPA_py.sum(axis=0)
     I_AMPA_fs=I_AMPA_fs.sum(axis=0)
     I_GABA_py=I_GABA_py.sum(axis=0)
-    #I_GABA_fs=I_GABA_fs.sum(axis=0)
-    I_GABA_fs=0
+    I_GABA_fs=I_GABA_fs.sum(axis=0)
+    #I_AMPA_py=0
+    #I_AMPA_fs=0
+    #I_GABA_py=0
+    #I_GABA_fs=0
     
     #pyramidal cell currents
     I_Na_py = g_Na*(m_py**3)*h_py*(v_py-E_Na)
@@ -172,6 +171,8 @@ def hodghuxATP(state, n, m,p):
     #pyramidal cell ATP dif eqs
     Nadot = F*I_Na_py-3*K_m*(Na**3)*ATP
     ATPdot = J_ATP*(ATP_max - ATP) - K_m*(Na**3)*ATP
+    #Nadot=np.zeros(n)
+    #ATPdot=np.zeros(n)
     
     #connection gating 
     xdot_AMPA = 5*(1+np.tanh(v_py/4))*(1-x_AMPA)-x_AMPA/2
@@ -199,15 +200,11 @@ for i in np.arange(T-1):
 y_py=y[0:6*n,:]
 y_fs=y[6*n:(6*n+4*m),:]
 
-v_py=y_py[::6,:]
-v_fs=y_fs[::4,:]
+v_py=y_py[:n,:]
+v_fs=y_fs[:m,:]
 
 plt.plot(t,v_py[0])
 plt.plot(t,v_fs[0])
 plt.legend(['Pyramidal Cell', 'FS Cell'])
 plt.show 
 
-
-
-## Q: Can we go over the set up of the code.... what different functions should I have? 
-#What is done seperately what can be done together?
