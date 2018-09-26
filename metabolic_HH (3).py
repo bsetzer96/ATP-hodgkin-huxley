@@ -47,7 +47,29 @@ F= 8.8*(10**(-5))     # help govern the NA-ATP pump dynamics
 tau_GABA= 5
 
 #Adding noise to parameters
-p=np.array([E_Na, E_k, E_AMPA, E_GABA, g_Na, g_K, g_K_ATP, g_AMPA_py, g_AMPA_fs, \
+
+E_Na=E_Na*np.random.uniform(.95,1.05,n+m)
+E_k=E_k*np.random.uniform(.95,1.05,n+m)
+E_AMPA_py=E_AMPA*np.random.uniform(.95,1.05,n)
+E_GABA_py=E_GABA*np.random.uniform(.95,1.05,n)
+E_AMPA_fs=E_AMPA*np.random.uniform(.95,1.05,m)
+E_GABA_fs=E_GABA*np.random.uniform(.95,1.05,m)
+g_Na=g_Na*np.random.uniform(.95,1.05,n+m)
+g_K=g_K*np.random.uniform(.95,1.05,n+m)
+g_K_ATP=g_K_ATP*np.random.uniform(.95,1.05,n)
+g_AMPA_py=g_AMPA_py*np.random.uniform(.95,1.05,n)
+g_AMPA_fs=g_AMPA_fs*np.random.uniform(.95,1.05,m)
+g_GABA_py=g_GABA_py*np.random.uniform(.95,1.05,n)
+g_GABA_fs=g_GABA_fs*np.random.uniform(.95,1.05,m)
+I_app_py=I_app_py +np.random.normal(0, 0.1, n)
+I_app_fs=I_app_fs+np.random.normal(0,.1, m)
+J_ATP=J_ATP*np.random.uniform(.95,1.05,n)
+ATP_max=ATP_max*np.random.uniform(.95,1.05,n)
+K_m=K_m*np.random.uniform(.95,1.05,n)
+F=F*np.random.uniform(.95,1.05,n)
+tau_GABA=tau_GABA*np.ones(1)
+
+p=np.concatenate([E_Na, E_k, E_GABA_py, E_GABA_fs, E_AMPA_py, E_AMPA_fs, g_Na, g_K, g_K_ATP, g_AMPA_py, g_AMPA_fs, \
             g_GABA_py, g_GABA_fs, I_app_py, I_app_fs, J_ATP, ATP_max, K_m, F, tau_GABA])
 p=np.transpose(p)
 
@@ -89,24 +111,30 @@ def hodghuxATP(state, n, m,p):
     x_AMPA = state_con[0:n]
     x_GABA = state_con[n:]
     
-    E_Na= p[0]
-    E_K= p[1]
-    E_AMPA = p[2]
-    E_GABA= p[3]
-    g_Na= p[4]
-    g_K = p[5]
-    g_K_ATP = p[6]
-    g_AMPA_py = p[7]
-    g_AMPA_fs = p[8]
-    g_GABA_py = p[9]
-    g_GABA_fs= p[10]
-    I_app_py= p[11]
-    I_app_fs = p[12]
-    J_ATP = p[13]
-    ATP_max = p[14]
-    K_m = p[15]
-    F = p[16]
-    tau_GABA = p[17] 
+    E_Na_py= p[:n]
+    E_Na_fs=p[n:(m+n)]
+    E_K_py= p[(m+n):(m+2*n)]
+    E_K_fs=p[(m+2*n):(2*m+2*n)]
+    E_GABA_py = p[(2*m+2*n):(2*m+3*n)]
+    E_GABA_fs= p[(2*m+3*n):(3*m+3*n)]
+    E_AMPA_py=p[(3*m+3*n):(3*m+4*n)]
+    E_AMPA_fs=p[(3*m+4*n):(4*m+4*n)]
+    g_Na_py= p[(4*m+4*n):(4*m+5*n)]
+    g_Na_fs=p[(4*m+5*n):(5*m+5*n)]
+    g_K_py = p[(5*m+5*n):(5*m+6*n)]
+    g_K_fs = p[(5*m+6*n):(6*m+6*n)]
+    g_K_ATP = p[(6*m+6*n):(6*m+7*n)]
+    g_AMPA_py = p[(6*m+7*n):(6*m+8*n)]
+    g_AMPA_fs = p[(6*m+8*n):(7*m+8*n)]
+    g_GABA_py = p[(7*m+8*n):(7*m+9*n)]
+    g_GABA_fs= p[(7*m+9*n):(8*m+9*n)]
+    I_app_py= p[(8*m+9*n):(8*m+10*n)]
+    I_app_fs = p[(8*m+10*n):(9*m+10*n)]
+    J_ATP = p[(9*m+10*n):(9*m+11*n)]
+    ATP_max = p[(9*m+11*n):(9*m+12*n)]
+    K_m = p[(9*m+12*n):(9*m+13*n)]
+    F = p[(9*m+13*n):(9*m+14*n)]
+    tau_GABA = p[(9*m+14*n):(9*m+15*n)]
     
     
     #hudgkin-huxley equations - - -
@@ -145,17 +173,17 @@ def hodghuxATP(state, n, m,p):
     for j in np.arange(n):#post synaptic neuron recieving input (to)
         for i in np.arange(n): #presynaptic neuron giving input (from)
             #PY to PY
-            I_AMPA_py[i,j]= g_AMPA_py*x_AMPA[i]*(v_py[j]-E_AMPA) 
+            I_AMPA_py[i,j]= g_AMPA_py[j]*x_AMPA[i]*(v_py[j]-E_AMPA_py[j]) 
         for i in np.arange(m): #from
             # FS to PY
-            I_GABA_py[i,j]=g_GABA_py*x_GABA[i]*(v_py[j]-E_GABA)           
+            I_GABA_py[i,j]=g_GABA_py[j]*x_GABA[i]*(v_py[j]-E_GABA_py[j])           
     for j in np.arange(m): #to
         for i in np.arange(n): #from i-->j
             #PY to FS
-            I_AMPA_fs[i,j]= g_AMPA_fs*x_AMPA[i]*(v_fs[j]-E_AMPA) 
+            I_AMPA_fs[i,j]= g_AMPA_fs[j]*x_AMPA[i]*(v_fs[j]-E_AMPA_fs[j]) 
         for i in np.arange(m): #from
             # FS to FS
-            I_GABA_fs[i,j]=g_GABA_fs*x_GABA[i]*(v_fs[j]-E_GABA) 
+            I_GABA_fs[i,j]=g_GABA_fs[j]*x_GABA[i]*(v_fs[j]-E_GABA_fs[j]) 
     
     #take out connections to self
     I_AMPA_py[np.eye(n)>0]=0
@@ -173,17 +201,17 @@ def hodghuxATP(state, n, m,p):
     
     #Other Currents - - - - -  - - - -
     #pyramidal cell currents - - -
-    I_Na_py = g_Na*(m_py**3)*h_py*(v_py-E_Na) #sodium current 
-    I_K_py = g_K*(n_py**4)*(v_py-E_K) #potassium current 
+    I_Na_py = g_Na_py*(m_py**3)*h_py*(v_py-E_Na_py) #sodium current 
+    I_K_py = g_K_py*(n_py**4)*(v_py-E_K_py) #potassium current 
     I_leak_py = 0.1*(v_py+61) #leak current 
-    I_K_ATP = g_K_ATP*z*(v_py-E_K) #potassium ATP current (metabolism)
+    I_K_ATP = g_K_ATP*z*(v_py-E_K_py) #potassium ATP current (metabolism)
     #pyramidal cell ATP dif eqs
     Nadot = F*I_Na_py-3*K_m*(Na**3)*ATP
     ATPdot = J_ATP*(ATP_max - ATP) - K_m*(Na**3)*ATP 
     
     #FS cell currents - - -
-    I_Na_fs = g_Na*(m_fs**3)*h_fs*(v_fs-E_Na)
-    I_K_fs = g_K*(n_fs**4)*(v_fs-E_K)
+    I_Na_fs = g_Na_fs*(m_fs**3)*h_fs*(v_fs-E_Na_fs)
+    I_K_fs = g_K_fs*(n_fs**4)*(v_fs-E_K_fs)
     I_leak_fs = 0.1*(v_fs+61)
  
 
