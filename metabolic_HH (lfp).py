@@ -222,6 +222,7 @@ def hodghuxATP(state, n, m,p):
     
     lfp = (np.sum(I_AMPA_fs)+np.sum(I_AMPA_py))/(n+m)
     lfp = np.ones(1)*lfp
+    
     #state variable arrays - - - 
     dx_py= np.concatenate([vdot_py, mdot_py, ndot_py, hdot_py, Nadot, ATPdot])
     dx_fs= np.concatenate([vdot_fs, mdot_fs, ndot_fs, hdot_fs])
@@ -237,7 +238,7 @@ for i in np.arange(T-1):
     k4=h*hodghuxATP(y[:,int(i)]+k3,n,m,p) #fourth step
     y[:,int(i+1)]=y[:,int(i)]+(1/6)*(k1+2*k2+2*k3+k4) #RK order 4
 
-lfs=y[1,:]
+lfs=y[,:]
 
 ## plotting ---------------------------
 #for i in np.arange(n):
@@ -256,6 +257,32 @@ plt.title("lfp metabolism rate = " + str(ATP_scale) + " of origional value")
 plt.rcParams["figure.figsize"] = fig_size
 plt.show() 
 
+
+y_py=y[0:6*n,:] #extracting py cell states
+y_fs=y[6*n:(6*n+4*m),:] #extracting fs cell states
+
+v_py=y_py[:n,:] #pyramidal cell membarane potentials
+v_fs=y_fs[:m,:] #fast spiking interneuron cell membrane potentials
+
+lfs=y[1,:]
+
+## plotting ---------------------------
+plt.figure
+for i in np.arange(n):
+    plt.plot(t,v_py[i])
+for i in np.arange(m):
+    plt.plot(t,v_fs[i])
+    plt.legend(['FS Cell '+ str(i+1)])
+plt.show 
+#for i in np.arange(n):
+#    plt.plot(t,v_py[i,:])
+    
+#for i in np.arange(m):
+#    plt.plot(t,v_fs[i,:])
+fig_size = plt.rcParams["figure.figsize"]
+fig_size[0] = 12
+
+plt.plot(t,y[(7*n+5*m)+1,:])
 #beeping when code is finished
 import winsound
 duration = 1000  # millisecond

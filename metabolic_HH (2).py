@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 ##time
 t1=0            #start time
-t2=1500           #end time
+t2=150           #end time
 delta=0.05      #step size
 h=delta         #runge kutta step
 T= (t2-t1)/delta+1 #length of time vector
@@ -151,7 +151,7 @@ for n in np.arange(T-1):
     k4=h*hodghuxFS(y_fs[:,int(n)]+k3,N,p_fs)
     y_fs[:,int(n+1)]=y_fs[:,int(n)]+(1/6)*(k1+2*k2+2*k3+k4)
     
-plt.plot(t,y_fs[0,:])
+plt.plot(t,y_[0,:])
 
 ## Q: Can we go over the set up of the code.... what different functions should I have? 
 #What is done seperately what can be done together?
