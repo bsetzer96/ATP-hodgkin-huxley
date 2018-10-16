@@ -15,8 +15,8 @@ delta=0.05      #step size
 h=delta         #runge kutta step
 T= (t2-t1)/delta+1 #length of time vector
 t=np.linspace(int(t1),int(t2),int(T)) #time vector
-n= 10               #number of pyramidal cells
-m= 4                 #number of fs cells
+n= 2               #number of pyramidal cells
+m= 2                 #number of fs cells
 ATP_scale=.3
 
 ## parameters   ------------------------------------------------------
@@ -37,7 +37,7 @@ g_K= 80               #potassium conductance
 g_K_ATP = 0.15        #potassium ATP conductance
 g_AMPA_py= 0.1/(n-1)               #AMPA excitatory connection current max
 g_AMPA_fs=2/(n-1)
-g_GABA_py= 0.64/(m-1)       #GABA inhibitory connection current max
+g_GABA_py= 0/(m-1)       #GABA inhibitory connection current max
 g_GABA_fs=1/(m-1)
 I_app_py= 1.8       #applied current to pyramidal cells
 I_app_fs=.5          #applied current to fs cells
@@ -61,7 +61,11 @@ g_AMPA_py=g_AMPA_py*np.random.uniform(.95,1.05,n)
 g_AMPA_fs=g_AMPA_fs*np.random.uniform(.95,1.05,m)
 g_GABA_py=g_GABA_py*np.random.uniform(.95,1.05,n)
 g_GABA_fs=g_GABA_fs*np.random.uniform(.95,1.05,m)
-I_app_py=I_app_py +np.random.normal(0, 0.1, n)
+
+
+
+#I_app_py=I_app_py +np.random.normal(0, 0.1, n)
+I_app_py=np.array([0,0])
 I_app_fs=I_app_fs+np.random.normal(0,.1, m)
 J_ATP=J_ATP*np.ones(n) #should this also have added noise for each neuron?
 ATP_max=ATP_max*np.random.uniform(.95,1.05,n)
@@ -75,7 +79,7 @@ p=np.transpose(p)
 
 
 ##preallocate space
-y=np.zeros((8*n+5*m+1,int(T)))
+y=np.zeros((7*n+5*m+4,int(T)))
 y[:6*n,0]=y0_py
 y[6*n:(6*n+4*m),0]=y0_fs
 y[(6*n+4*m):(7*n+5*m),0]=y0_x
@@ -135,7 +139,7 @@ def hodghuxATP(state, n, m,p):
     K_m = p[(9*m+12*n):(9*m+13*n)]
     F = p[(9*m+13*n):(9*m+14*n)]
     tau_GABA = p[(9*m+14*n):(9*m+15*n)]
-    -
+
     
     #hudgkin-huxley equations - - -
     #
@@ -189,6 +193,9 @@ def hodghuxATP(state, n, m,p):
     I_AMPA_py[np.eye(n)>0]=0
     I_GABA_fs[np.eye(m)>0]=0
     
+    I_AMPA_test=I_AMPA_py[1,0]
+    I_AMPA_test=np.ones((1))*I_AMPA_test
+    
     #summing total input from all other neurons
     I_AMPA_py=I_AMPA_py.sum(axis=0)
     I_AMPA_fs=I_AMPA_fs.sum(axis=0)
@@ -227,7 +234,7 @@ def hodghuxATP(state, n, m,p):
     dx_py= np.concatenate([vdot_py, mdot_py, ndot_py, hdot_py, Nadot, ATPdot])
     dx_fs= np.concatenate([vdot_fs, mdot_fs, ndot_fs, hdot_fs])
     dx_con= np.concatenate([xdot_AMPA, xdot_GABA])
-    dx= np.concatenate([dx_py, dx_fs, dx_con, lfp, I_AMPA_py])
+    dx= np.concatenate([dx_py, dx_fs, dx_con, lfp, I_AMPA_test,I_AMPA_py])
     return dx
 
 ##Runge kutta order 4 integration of pyramidal cell-----------------------------------
@@ -243,11 +250,19 @@ lfs=y[(7*n+5*m),:]
 y_py=y[0:6*n,:] #extracting py cell states
 y_fs=y[6*n:(6*n+4*m),:] #extracting fs cell states
 
-v_py=y_py[:n,:] #pyramidal cell membarane potentials
+v_py=y_py[:n,1500:] #pyramidal cell membarane potentials
 v_fs=y_fs[:m,:] #fast spiking interneuron cell membrane potentials
 
-I_AMPA= y[(7*n+5*m):,:]
-plt.plot(t, I_AMPA(1,:))
+x_AMPA=y[(6*n+4*m):(7*n+4*m),:]
+
+I_AMPA_test= y[(7*n+5*m)+1,1500:]
+plt.plot(t[1500:], I_AMPA_test)
+plt.show()
+
+I_AMPA_py=y[(7*n+5*m)+2,1500:]
+plt.plot(t[1500:],I_AMPA_py)
+plt.show()
+
 ## plotting ---------------------------
 fig_size = plt.rcParams["figure.figsize"]
 fig_size[0] = 12
@@ -262,7 +277,7 @@ plt.show()
 
 plt.figure
 for i in np.arange(n):
-    plt.plot(t,v_py[i])
+    plt.plot(t[1500:],v_py[i])
 plt.show 
 
 #beeping when code is finished

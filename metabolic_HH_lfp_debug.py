@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 ## basic values for integration -------------------------------
 t1=0            #start time
-t2=200           #end time
+t2=4000           #end time
 delta=0.05      #step size
 h=delta         #runge kutta step
 T= (t2-t1)/delta+1 #length of time vector
@@ -61,7 +61,10 @@ g_AMPA_py=g_AMPA_py*np.random.uniform(.95,1.05,n)
 g_AMPA_fs=g_AMPA_fs*np.random.uniform(.95,1.05,m)
 g_GABA_py=g_GABA_py*np.random.uniform(.95,1.05,n)
 g_GABA_fs=g_GABA_fs*np.random.uniform(.95,1.05,m)
+
+
 I_app_py=I_app_py +np.random.normal(0, 0.1, n)
+#I_app_py=np.array([0,0])
 I_app_fs=I_app_fs+np.random.normal(0,.1, m)
 J_ATP=J_ATP*np.ones(n) #should this also have added noise for each neuron?
 ATP_max=ATP_max*np.random.uniform(.95,1.05,n)
@@ -75,7 +78,7 @@ p=np.transpose(p)
 
 
 ##preallocate space
-y=np.zeros((8*n+5*m+1,int(T)))
+y=np.zeros((7*n+5*m,int(T)))
 y[:6*n,0]=y0_py
 y[6*n:(6*n+4*m),0]=y0_fs
 y[(6*n+4*m):(7*n+5*m),0]=y0_x
@@ -135,7 +138,7 @@ def hodghuxATP(state, n, m,p):
     K_m = p[(9*m+12*n):(9*m+13*n)]
     F = p[(9*m+13*n):(9*m+14*n)]
     tau_GABA = p[(9*m+14*n):(9*m+15*n)]
-    -
+
     
     #hudgkin-huxley equations - - -
     #
@@ -173,7 +176,7 @@ def hodghuxATP(state, n, m,p):
     for j in np.arange(n):#post synaptic neuron recieving input (to)
         for i in np.arange(n): #presynaptic neuron giving input (from)
             #PY to PY
-            I_AMPA_py[i,j]= g_AMPA_py[j]*x_AMPA[i]*(v_py[j]-E_AMPA_py[j]) 
+            I_AMPA_py[i,j]= g_AMPA_py[i]*x_AMPA[i]*(v_py[j]-E_AMPA_py[i]) 
         for i in np.arange(m): #from
             # FS to PY
             I_GABA_py[i,j]=g_GABA_py[j]*x_GABA[i]*(v_py[j]-E_GABA_py[j])           
@@ -189,11 +192,14 @@ def hodghuxATP(state, n, m,p):
     I_AMPA_py[np.eye(n)>0]=0
     I_GABA_fs[np.eye(m)>0]=0
     
+    I_AMPA_test=I_AMPA_py[0,1]
+    I_AMPA_test=np.ones((1))*I_AMPA_test
+    
     #summing total input from all other neurons
-    I_AMPA_py=I_AMPA_py.sum(axis=0)
-    I_AMPA_fs=I_AMPA_fs.sum(axis=0)
-    I_GABA_py=I_GABA_py.sum(axis=0)
-    I_GABA_fs=I_GABA_fs.sum(axis=0)
+    I_AMPA_py_sum=I_AMPA_py.sum(axis=0)
+    I_AMPA_fs_sum=I_AMPA_fs.sum(axis=0)
+    I_GABA_py_sum=I_GABA_py.sum(axis=0)
+    I_GABA_fs_sum=I_GABA_fs.sum(axis=0)
     
     #connection gating differentials
     xdot_AMPA = 5*(1+np.tanh(v_py/4))*(1-x_AMPA)-x_AMPA/2 #py cells
@@ -213,21 +219,16 @@ def hodghuxATP(state, n, m,p):
     I_Na_fs = g_Na_fs*(m_fs**3)*h_fs*(v_fs-E_Na_fs)
     I_K_fs = g_K_fs*(n_fs**4)*(v_fs-E_K_fs)
     I_leak_fs = 0.1*(v_fs+61)
- 
-
     
     #voltage equations for both cells - - -
-    vdot_py = I_app_py-I_Na_py-I_K_py-I_K_ATP-I_leak_py-I_GABA_py-I_AMPA_py
-    vdot_fs = I_app_fs-I_Na_fs-I_K_fs-I_leak_fs -I_AMPA_fs-I_GABA_fs
-    
-    lfp = (np.sum(I_AMPA_fs)+np.sum(I_AMPA_py))/(n+m-1)
-    lfp = np.ones(1)*lfp
+    vdot_py = I_app_py-I_Na_py-I_K_py-I_K_ATP-I_leak_py-I_GABA_py_sum-I_AMPA_py_sum
+    vdot_fs = I_app_fs-I_Na_fs-I_K_fs-I_leak_fs -I_AMPA_fs_sum-I_GABA_fs_sum
     
     #state variable arrays - - - 
     dx_py= np.concatenate([vdot_py, mdot_py, ndot_py, hdot_py, Nadot, ATPdot])
     dx_fs= np.concatenate([vdot_fs, mdot_fs, ndot_fs, hdot_fs])
     dx_con= np.concatenate([xdot_AMPA, xdot_GABA])
-    dx= np.concatenate([dx_py, dx_fs, dx_con, lfp, I_AMPA_py])
+    dx= np.concatenate([dx_py, dx_fs, dx_con])
     return dx
 
 ##Runge kutta order 4 integration of pyramidal cell-----------------------------------
@@ -237,33 +238,52 @@ for i in np.arange(T-1):
     k3=h*hodghuxATP(y[:,int(i)]+k2/2,n,m,p) #third step
     k4=h*hodghuxATP(y[:,int(i)]+k3,n,m,p) #fourth step
     y[:,int(i+1)]=y[:,int(i)]+(1/6)*(k1+2*k2+2*k3+k4) #RK order 4
-
-lfs=y[(7*n+5*m),:]
-
+## because im treating it like a dif eq!!!!!!!! so its being summed X)
+    
 y_py=y[0:6*n,:] #extracting py cell states
 y_fs=y[6*n:(6*n+4*m),:] #extracting fs cell states
 
 v_py=y_py[:n,:] #pyramidal cell membarane potentials
 v_fs=y_fs[:m,:] #fast spiking interneuron cell membrane potentials
 
-I_AMPA= y[(7*n+5*m):,:]
-plt.plot(t, I_AMPA(1,:))
+x_AMPA=y[(6*n+4*m):(7*n+4*m),:]
+
+plt.plot(t,x_AMPA[0,:])
+plt.title('x_ampa')
+plt.show()
+
+I_AMPA_py = np.zeros((int(n),int(T)))
+for i in np.arange(n):
+    for j in np.arange(n):
+        I_AMPA_py[j,:]=g_AMPA_py[i]*x_AMPA[j,:]*(v_py[i,:]-E_AMPA_py[i])
+
+
+lfs = I_AMPA_py.sum(axis=0)
+
 ## plotting ---------------------------
 fig_size = plt.rcParams["figure.figsize"]
 fig_size[0] = 12
 fig_size[1] = 2
 
+#plt.plot(t, I_AMPA_py[0,:])
+#plt.title('actual I ampa ?')
+#plt.show()
+
 plt.plot(t,lfs, linewidth=.5)
 plt.xlabel("time")
 plt.ylabel("lfp")
 plt.title("lfp metabolism rate = " + str(ATP_scale) + " of origional value")
-plt.rcParams["figure.figsize"] = fig_size
-plt.show() 
+plt.show()
 
 plt.figure
 for i in np.arange(n):
     plt.plot(t,v_py[i])
-plt.show 
+plt.title('membrane potential')
+plt.show() 
+
+plt.rcParams["figure.figsize"] = fig_size
+
+
 
 #beeping when code is finished
 import winsound
