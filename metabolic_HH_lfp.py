@@ -17,7 +17,7 @@ T= (t2-t1)/delta+1 #length of time vector
 t=np.linspace(int(t1),int(t2),int(T)) #time vector
 n= 2               #number of pyramidal cells
 m= 2                 #number of fs cells
-ATP_scale=.3
+ATP_scale=1
 
 ## parameters   ------------------------------------------------------
 y0_py=np.zeros(6*n)    #initial condition

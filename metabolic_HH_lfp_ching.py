@@ -15,20 +15,20 @@ import matplotlib.pyplot as plt
 
 ## basic values for integration -------------------------------
 t1=0            #start time
-t2=1200          #end time
+t2=1500           #end time
 delta=0.05      #step size
 h=delta         #runge kutta step
 T= (t2-t1)/delta+1 #length of time vector
 t=np.linspace(int(t1),int(t2),int(T)) #time vector
 n= 10               #number of pyramidal cells
 m= 4                 #number of fs cells
-ATP_scale=1
+ATP_scale=.3
 
 ## parameters   ------------------------------------------------------
 y0_py=np.zeros(6*n)    #initial condition
 y0_py[:n]=-70 #first n are voltage 
 y0_py[n*4:n*5] = 10 #Na 0
-y0_py[n*5:]=2 #last n are ATP
+y0_py[n*5:]=0.4 #last n are ATP
 y0_fs= np.zeros(4*m)
 y0_fs[:m]=-70 
 y0_x = np.zeros(n+m)
@@ -158,7 +158,7 @@ def hodghuxATP(state, n, m,p):
     beta_h_py = 4/(1+np.exp(-(v_py+27)/5))
     alpha_n_py = ((0.032)*(v_py+52))/(1-np.exp(-(v_py+52)/5))
     beta_n_py = 0.5*np.exp(-(v_py+57)/40)
-    z = 1/(1+6*ATP)
+   # z = 1/(1+6*ATP)
     
     alpha_m_fs = ((0.32)*(v_fs+54))/(1-np.exp(-(v_fs+54)/4))
     beta_m_fs = ((0.28)*(v_fs+27))/(np.exp((v_fs+27)/5)-1)
@@ -219,18 +219,17 @@ def hodghuxATP(state, n, m,p):
     #pyramidal cell currents - - -
     I_Na_py = g_Na_py*(m_py**3)*h_py*(v_py-E_Na_py) #sodium current 
     I_K_py = g_K_py*(n_py**4)*(v_py-E_K_py) #potassium current 
-    I_leak_py = 0.1*(v_py+61) #leak current 
-    I_K_ATP = g_K_ATP*z*(v_py-E_K_py) #potassium ATP current (metabolism)
+    I_leak_py = 0.1*(v_py+67) #leak current  
+    I_K_ATP = (0.15/(1+(ATP/0.6)))*(v_py+100) #g_K_ATP*z*(v_py-E_K_py) #potassium ATP current (metabolism)
     #pyramidal cell ATP dif eqs
-    Nadot = F*np.abs(I_Na_py)-3*K_m*(Na**3)*ATP
-    ATPdot = J_ATP*(ATP_max - ATP) - K_m*(Na**3)*ATP 
+    Nadot = 3*2*((0.000168)*1.8*np.abs(I_Na_py)-(3*(0.00000006)*ATP*Na**3))# F*np.abs(I_Na_py)-3*K_m*(Na**3)*ATP
+    ATPdot = 2*5*((J_ATP*0.0004)*(2-ATP)-(2*(0.00000006)*ATP*Na**3)) #J_ATP*(ATP_max - ATP) - K_m*(Na**3)*ATP 
     
     
     #FS cell currents - - -
     I_Na_fs = g_Na_fs*(m_fs**3)*h_fs*(v_fs-E_Na_fs)
- 
     I_K_fs = g_K_fs*(n_fs**4)*(v_fs-E_K_fs)
-    I_leak_fs = 0.1*(v_fs+61)
+    I_leak_fs = 0.1*(v_fs+67)
     
     #voltage equations for both cells - - -
     vdot_py = I_app_py-I_Na_py-I_K_py-I_K_ATP-I_leak_py-I_GABA_py_sum-I_AMPA_py_sum
@@ -292,11 +291,7 @@ plt.show()
 plt.figure
 for i in np.arange(n):
     plt.plot(t,v_py[i])
-for i in np.arange(m):
-    plt.plot(t,v_fs[i])
-plt.title('Action Potentials')
-plt.xlabel('Time (mS)')
-plt.ylabel('Membrane Potential (mV)')
+plt.title('membrane potential')
 plt.show() 
 
 plt.rcParams["figure.figsize"] = fig_size

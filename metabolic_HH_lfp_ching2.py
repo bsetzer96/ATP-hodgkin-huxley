@@ -15,14 +15,14 @@ import matplotlib.pyplot as plt
 
 ## basic values for integration -------------------------------
 t1=0            #start time
-t2=1200          #end time
+t2=800           #end time
 delta=0.05      #step size
 h=delta         #runge kutta step
 T= (t2-t1)/delta+1 #length of time vector
 t=np.linspace(int(t1),int(t2),int(T)) #time vector
 n= 10               #number of pyramidal cells
 m= 4                 #number of fs cells
-ATP_scale=1
+ATP_scale=.3
 
 ## parameters   ------------------------------------------------------
 y0_py=np.zeros(6*n)    #initial condition
@@ -222,8 +222,8 @@ def hodghuxATP(state, n, m,p):
     I_leak_py = 0.1*(v_py+61) #leak current 
     I_K_ATP = g_K_ATP*z*(v_py-E_K_py) #potassium ATP current (metabolism)
     #pyramidal cell ATP dif eqs
-    Nadot = F*np.abs(I_Na_py)-3*K_m*(Na**3)*ATP
-    ATPdot = J_ATP*(ATP_max - ATP) - K_m*(Na**3)*ATP 
+    Nadot = 2*3*((0.000168)*1.8*np.abs(I_Na_py)-(3*(0.00000006)*ATP*Na*Na*Na))#F*np.abs(I_Na_py)-3*K_m*(Na**3)*ATP
+    ATPdot = 2*5*((J_ATP*0.0004)*(2.00-ATP)-(2*(0.00000006)*ATP*Na*Na*Na))#J_ATP*(ATP_max - ATP) - K_m*(Na**3)*ATP 
     
     
     #FS cell currents - - -
@@ -292,17 +292,18 @@ plt.show()
 plt.figure
 for i in np.arange(n):
     plt.plot(t,v_py[i])
-for i in np.arange(m):
-    plt.plot(t,v_fs[i])
-plt.title('Action Potentials')
-plt.xlabel('Time (mS)')
-plt.ylabel('Membrane Potential (mV)')
+plt.title('membrane potential')
 plt.show() 
 
 plt.rcParams["figure.figsize"] = fig_size
 
 plt.plot(t, atp[1,:])
 plt.plot(t,na[1,:])
+
+plt.plot(t[:4000],v_py[1,:4000])
+plt.title('Hodgkin-Huxley Action Potentials')
+plt.xlabel('Time (mS)')
+plt.ylabel('Membrane Potential (mV)')
 
 #beeping when code is finished
 import winsound
