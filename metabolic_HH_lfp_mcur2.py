@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 ## basic values for integration -------------------------------
 t1=0            #start time
-t2=2000           #end time
+t2=10000           #end time
 delta=0.05      #step size
 h=delta         #runge kutta step
 T= (t2-t1)/delta+1 #length of time vector
@@ -43,14 +43,14 @@ g_AMPA_fs=2/(n-1)
 g_GABA_py= 0.64/(m-1)       #GABA inhibitory connection current max
 g_GABA_fs=1/(m-1)
 g_M=2
-I_app_py= 2.8 #5 #3.4       #applied current to pyramidal cells
-I_app_fs=.2          #applied current to fs cells
+I_app_py= 3.4 #1.8 #3.4       #applied current to pyramidal cells
+I_app_fs=.5          #applied current to fs cells
 J_ATP= 2*ATP_scale              #production rate of ATP (linked to metabolism)
 ATP_max= 1.5         # ?
 K_m= 6*(10**(-8))     # govern the NA-ATP pump dynamics
 F= 2*3*.000168*1.8 #8.8*(10**(-5))     # help govern the NA-ATP pump dynamics
 Q_s=3.209
-tau_GABA= 20 #origionally 5
+tau_GABA= 5
 
 #Adding noise to parameters
 E_Na=E_Na*np.random.uniform(.95,1.05,n+m)
@@ -244,7 +244,7 @@ def hodghuxATP(state, n, m,p):
     I_leak_fs = 0.1*(v_fs+61)
     
     #voltage equations for both cells - - -
-    vdot_py = I_app_py-I_Na_py-I_K_py-I_K_ATP-I_M_py-I_leak_py-I_GABA_py_sum-I_AMPA_py_sum
+    vdot_py = I_app_py-I_Na_py-I_K_py-I_K_ATP-I_leak_py-I_GABA_py_sum-I_AMPA_py_sum - I_M_py
     vdot_fs = I_app_fs-I_Na_fs-I_K_fs-I_leak_fs -I_AMPA_fs_sum-I_GABA_fs_sum
     
     #state variable arrays - - - 
@@ -283,25 +283,18 @@ for i in np.arange(n):
     for j in np.arange(n):
         I_AMPA_py[j,:]=g_AMPA_py[i]*x_AMPA[j,:]*(v_py[i,:]-E_AMPA_py[i])
 
+
 lfs = I_AMPA_py.sum(axis=0)
 
 ## plotting ---------------------------
 fig_size = plt.rcParams["figure.figsize"]
 fig_size[0] = 12
 fig_size[1] = 2
-font = {'family' : 'normal',
-        'weight' : 'bold',
-        'size'   : 18}
 
-
-
-plt.plot(t[20000:],lfs[20000:], linewidth=2)
-plt.xlabel("Time (mS)")
-plt.ylabel("LFP")
-plt.title('Slow wave oscillations at I_app = 3.4')
-plt.rc('xtick', labelsize=10) 
-plt.rc('ytick', labelsize=10) 
-plt.rc('font', **font)
+plt.plot(t[20000:],lfs[20000:], linewidth=.5)
+plt.xlabel("time")
+plt.ylabel("lfp")
+plt.title("lfp metabolism rate = " + str(ATP_scale) + " of origional value")
 plt.show()
 
 plt.figure
@@ -319,30 +312,25 @@ Mdot_py = alpha_M_py*(1-M_py)-beta_M_py*M_py
 I_M_py=g_M*M_py*(v_py-E_M)
 plt.plot(t[20000:], I_M_py[1,20000:])
 plt.title('M-Current')
-plt.xlabel('Time (mS)')
+plt.xlabel('time')
 plt.ylabel('I_M')
 plt.show()
 
 #plt.plot(t,M_py[1,:])
 #plt.show()
 
-plt.plot(t[20000:],na[1,20000:], linewidth=2)
+plt.plot(t[20000:],na[1,20000:])
 plt.title('Sodium Concentration')
-plt.xlabel('Time (mS)')
+plt.xlabel('time')
 plt.ylabel('Na')
-plt.rc('xtick', labelsize=10) 
-plt.rc('ytick', labelsize=10) 
-plt.rc('font', **font)
 plt.show()
 
-plt.plot(t[20000:], atp[1,20000:], linewidth=2)
+plt.plot(t[20000:], atp[1,20000:])
 plt.title('ATP')
-plt.xlabel('Time (mS)')
+plt.xlabel('Time')
 plt.ylabel('ATP Concentration')
-plt.rc('xtick', labelsize=10) 
-plt.rc('ytick', labelsize=10) 
-plt.rc('font', **font)
 plt.show()
+
 #beeping when code is finished
 import winsound
 duration = 1000  # millisecond
@@ -350,7 +338,7 @@ freq = 440  # Hz
 winsound.Beep(freq, duration)
 
 ## computing power spectrum
-dt = t[1] - t[0] #sampling frequency
+dt = t[1] - t[0]
 N=(T-1)*dt
 xf = np.fft.fft(lfs - lfs.mean())  # Compute Fourier transform of x
 Sxx = 2 * dt ** 2 / N * (xf * np.conj(xf))  # Compute spectrum
@@ -360,8 +348,8 @@ df = 1 / N  # Determine frequency resolution
 fNQ = 1 / dt / 2  # Determine Nyquist frequency
 faxis = np.arange(0,fNQ,df)  # Construct frequency axis
 
-plt.plot(faxis[:100]*1000, np.real(Sxx[:100]))  # Plot spectrum vs frequency
-#plt.xlim([0, 100])  # Select frequency range
+plt.plot(faxis*1000, np.real(Sxx))  # Plot spectrum vs frequency
+plt.xlim([0, 100])  # Select frequency range
 plt.xlabel('Frequency [Hz]')  # Label the axes
 plt.ylabel('Power [$\mu V^2$/Hz]')
 plt.title('Power Spectrum')

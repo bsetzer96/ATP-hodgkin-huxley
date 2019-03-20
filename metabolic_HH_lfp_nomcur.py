@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 ## basic values for integration -------------------------------
 t1=0            #start time
-t2=2000           #end time
+t2=5000           #end time
 delta=0.05      #step size
 h=delta         #runge kutta step
 T= (t2-t1)/delta+1 #length of time vector
@@ -21,7 +21,7 @@ m= 4                 #number of fs cells
 ATP_scale=1
 
 ## parameters   ------------------------------------------------------
-y0_py=np.zeros(7*n)    #initial condition
+y0_py=np.zeros(6*n)    #initial condition
 y0_py[:n]=-70 #first n are voltage 
 y0_py[n*4:n*5] = 10 #Na 0
 y0_py[n*5:n*6]=2 #2nd to last n are ATP
@@ -43,14 +43,14 @@ g_AMPA_fs=2/(n-1)
 g_GABA_py= 0.64/(m-1)       #GABA inhibitory connection current max
 g_GABA_fs=1/(m-1)
 g_M=2
-I_app_py= 2.8 #5 #3.4       #applied current to pyramidal cells
-I_app_fs=.2          #applied current to fs cells
+I_app_py= 2.8 #1.8 #3.4       #applied current to pyramidal cells
+I_app_fs=.5          #applied current to fs cells
 J_ATP= 2*ATP_scale              #production rate of ATP (linked to metabolism)
 ATP_max= 1.5         # ?
 K_m= 6*(10**(-8))     # govern the NA-ATP pump dynamics
 F= 2*3*.000168*1.8 #8.8*(10**(-5))     # help govern the NA-ATP pump dynamics
 Q_s=3.209
-tau_GABA= 20 #origionally 5
+tau_GABA= 20
 
 #Adding noise to parameters
 E_Na=E_Na*np.random.uniform(.95,1.05,n+m)
@@ -85,10 +85,10 @@ p=np.transpose(p)
 
 
 ##preallocate space
-y=np.zeros((8*n+5*m,int(T)))
-y[:7*n,0]=y0_py
-y[7*n:(7*n+4*m),0]=y0_fs
-y[(7*n+4*m):(8*n+5*m),0]=y0_x
+y=np.zeros((7*n+5*m,int(T)))
+y[:6*n,0]=y0_py
+y[6*n:(6*n+4*m),0]=y0_fs
+y[(6*n+4*m):(7*n+5*m),0]=y0_x
 
 
 #I_app=0.5+.2*random number
@@ -103,9 +103,9 @@ def hodghuxATP(state, n, m,p):
     #       [E_Na, E_k, E_AMPA, E_GABA, g_Na, g_K, g_K_ATP, g_AMPA_py, g_AMPA_fs, g_GABA_py, g_GABA_fs, I_app_py, I_app_fs, J_ATP, ATP_max, K_m, F, tau_GABA]
    
     #assigning variables and parameters- - -
-    state_py=state[:7*n]
-    state_fs=state[7*n:(7*n+4*m)]
-    state_con=state[(7*n+4*m):(8*n+5*m)]
+    state_py=state[:6*n]
+    state_fs=state[6*n:(6*n+4*m)]
+    state_con=state[(6*n+4*m):(7*n+5*m)]
     
     v_py= state_py[:n]
     m_py= state_py[n:n*2]
@@ -113,7 +113,6 @@ def hodghuxATP(state, n, m,p):
     h_py= state_py[n*3:n*4]
     Na= state_py[n*4:n*5]
     ATP= state_py[n*5:n*6]
-    M_py=state_py[n*6:]
     
     v_fs= state_fs[:m]
     m_fs= state_fs[m:m*2]
@@ -147,8 +146,8 @@ def hodghuxATP(state, n, m,p):
     K_m = p[(9*m+12*n):(9*m+13*n)]
     F = p[(9*m+13*n):(9*m+14*n)]
     tau_GABA = p[9*m+14*n]
-    E_M=p[9*m+14*n+1]
-    g_M=p[9*m+14*n+2]
+    #E_M=p[9*m+14*n+1]
+    #g_M=p[9*m+14*n+2]
     Q_s=p[9*m+14*n+3]
 
     
@@ -182,7 +181,7 @@ def hodghuxATP(state, n, m,p):
     #K
     ndot_py = alpha_n_py*(1-n_py)-beta_n_py*n_py
     #M
-    Mdot_py = alpha_M_py*(1-M_py)-beta_M_py*M_py
+    #Mdot_py = alpha_M_py*(1-M_py)-beta_M_py*M_py
     
     mdot_fs = alpha_m_fs*(1-m_fs) - beta_m_fs*m_fs
     hdot_fs= alpha_h_fs*(1-h_fs) - beta_h_fs*h_fs
@@ -236,7 +235,7 @@ def hodghuxATP(state, n, m,p):
     #pyramidal cell ATP dif eqs
     Nadot = 2*3*((0.000168)*1.8*np.abs(I_Na_py)-(3*(0.00000006)*ATP*Na*Na*Na))#F*np.abs(I_Na_py)-3*K_m*(Na**3)*ATP
     ATPdot = 2*5*((J_ATP*0.0004)*(2.00-ATP)-(2*(0.00000006)*ATP*Na*Na*Na))#J_ATP*(ATP_max - ATP) - K_m*(Na**3)*ATP 
-    I_M_py=g_M*M_py*(v_py-E_M)
+    #I_M_py=g_M*M_py*(v_py-E_M)
     
     #FS cell currents - - -
     I_Na_fs = g_Na_fs*(m_fs**3)*h_fs*(v_fs-E_Na_fs)
@@ -244,11 +243,11 @@ def hodghuxATP(state, n, m,p):
     I_leak_fs = 0.1*(v_fs+61)
     
     #voltage equations for both cells - - -
-    vdot_py = I_app_py-I_Na_py-I_K_py-I_K_ATP-I_M_py-I_leak_py-I_GABA_py_sum-I_AMPA_py_sum
+    vdot_py = I_app_py-I_Na_py-I_K_py-I_K_ATP-I_leak_py-I_GABA_py_sum-I_AMPA_py_sum 
     vdot_fs = I_app_fs-I_Na_fs-I_K_fs-I_leak_fs -I_AMPA_fs_sum-I_GABA_fs_sum
     
     #state variable arrays - - - 
-    dx_py= np.concatenate([vdot_py, mdot_py, ndot_py, hdot_py, Nadot, ATPdot,Mdot_py])
+    dx_py= np.concatenate([vdot_py, mdot_py, ndot_py, hdot_py, Nadot, ATPdot])
     dx_fs= np.concatenate([vdot_fs, mdot_fs, ndot_fs, hdot_fs])
     dx_con= np.concatenate([xdot_AMPA, xdot_GABA])
     dx= np.concatenate([dx_py, dx_fs, dx_con])
@@ -262,17 +261,17 @@ for i in np.arange(T-1):
     k4=h*hodghuxATP(y[:,int(i)]+k3,n,m,p) #fourth step
     y[:,int(i+1)]=y[:,int(i)]+(1/6)*(k1+2*k2+2*k3+k4) #RK order 4
     
-y_py=y[0:7*n,:] #extracting py cell states
-y_fs=y[7*n:(7*n+4*m),:] #extracting fs cell states
+y_py=y[0:6*n,:] #extracting py cell states
+y_fs=y[6*n:(7*n+4*m),:] #extracting fs cell states
 
 na = y_py[n*4:n*5,:]
 atp = y_py[n*5:n*6,:]
-M_py = y_py[n*6:n*7,:]
+
 
 v_py=y_py[:n,:] #pyramidal cell membarane potentials
 v_fs=y_fs[:m,:] #fast spiking interneuron cell membrane potentials
 
-x_AMPA=y[(7*n+4*m):(8*n+4*m),:]
+x_AMPA=y[(6*n+4*m):(7*n+4*m),:]
 
 plt.plot(t,x_AMPA[0,:])
 plt.title('x_ampa')
@@ -283,25 +282,18 @@ for i in np.arange(n):
     for j in np.arange(n):
         I_AMPA_py[j,:]=g_AMPA_py[i]*x_AMPA[j,:]*(v_py[i,:]-E_AMPA_py[i])
 
+
 lfs = I_AMPA_py.sum(axis=0)
 
 ## plotting ---------------------------
 fig_size = plt.rcParams["figure.figsize"]
 fig_size[0] = 12
 fig_size[1] = 2
-font = {'family' : 'normal',
-        'weight' : 'bold',
-        'size'   : 18}
 
-
-
-plt.plot(t[20000:],lfs[20000:], linewidth=2)
-plt.xlabel("Time (mS)")
-plt.ylabel("LFP")
-plt.title('Slow wave oscillations at I_app = 3.4')
-plt.rc('xtick', labelsize=10) 
-plt.rc('ytick', labelsize=10) 
-plt.rc('font', **font)
+plt.plot(t[20000:],lfs[20000:], linewidth=.5)
+plt.xlabel("time")
+plt.ylabel("lfp")
+plt.title("lfp metabolism rate = " + str(ATP_scale) + " of origional value")
 plt.show()
 
 plt.figure
@@ -313,36 +305,31 @@ plt.show()
 plt.rcParams["figure.figsize"] = fig_size
 
 
-alpha_M_py=Q_s*(0.0001)*(v_py+30)/(1-np.exp(-1*(v_py+30)/9))
-beta_M_py = -1*Q_s*(0.0001)*(v_py+30)/(1-np.exp((v_py+30)/9))
-Mdot_py = alpha_M_py*(1-M_py)-beta_M_py*M_py
-I_M_py=g_M*M_py*(v_py-E_M)
-plt.plot(t[20000:], I_M_py[1,20000:])
-plt.title('M-Current')
-plt.xlabel('Time (mS)')
-plt.ylabel('I_M')
-plt.show()
+#alpha_M_py=Q_s*(0.0001)*(v_py+30)/(1-np.exp(-1*(v_py+30)/9))
+#beta_M_py = -1*Q_s*(0.0001)*(v_py+30)/(1-np.exp((v_py+30)/9))
+#Mdot_py = alpha_M_py*(1-M_py)-beta_M_py*M_py
+#I_M_py=g_M*M_py*(v_py-E_M)
+#plt.plot(t[20000:], I_M_py[1,20000:])
+#plt.title('M-Current')
+#plt.xlabel('time')
+#plt.ylabel('I_M')
+#plt.show()
 
 #plt.plot(t,M_py[1,:])
 #plt.show()
 
-plt.plot(t[20000:],na[1,20000:], linewidth=2)
+plt.plot(t[20000:],na[1,20000:])
 plt.title('Sodium Concentration')
-plt.xlabel('Time (mS)')
+plt.xlabel('time')
 plt.ylabel('Na')
-plt.rc('xtick', labelsize=10) 
-plt.rc('ytick', labelsize=10) 
-plt.rc('font', **font)
 plt.show()
 
-plt.plot(t[20000:], atp[1,20000:], linewidth=2)
+plt.plot(t[20000:], atp[1,20000:])
 plt.title('ATP')
-plt.xlabel('Time (mS)')
+plt.xlabel('Time')
 plt.ylabel('ATP Concentration')
-plt.rc('xtick', labelsize=10) 
-plt.rc('ytick', labelsize=10) 
-plt.rc('font', **font)
 plt.show()
+
 #beeping when code is finished
 import winsound
 duration = 1000  # millisecond
@@ -350,7 +337,7 @@ freq = 440  # Hz
 winsound.Beep(freq, duration)
 
 ## computing power spectrum
-dt = t[1] - t[0] #sampling frequency
+dt = t[1] - t[0]
 N=(T-1)*dt
 xf = np.fft.fft(lfs - lfs.mean())  # Compute Fourier transform of x
 Sxx = 2 * dt ** 2 / N * (xf * np.conj(xf))  # Compute spectrum
@@ -360,8 +347,8 @@ df = 1 / N  # Determine frequency resolution
 fNQ = 1 / dt / 2  # Determine Nyquist frequency
 faxis = np.arange(0,fNQ,df)  # Construct frequency axis
 
-plt.plot(faxis[:100]*1000, np.real(Sxx[:100]))  # Plot spectrum vs frequency
-#plt.xlim([0, 100])  # Select frequency range
+plt.plot(faxis*1000, np.real(Sxx))  # Plot spectrum vs frequency
+plt.xlim([0, 100])  # Select frequency range
 plt.xlabel('Frequency [Hz]')  # Label the axes
 plt.ylabel('Power [$\mu V^2$/Hz]')
 plt.title('Power Spectrum')
