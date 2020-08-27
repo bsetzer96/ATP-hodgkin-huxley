@@ -64,36 +64,72 @@ ransc=0*(amp*(10**-6) * cm ** -2)
 F = 8.8*(10**(-5)) #units?
 K_m =  6*(10**(-8)) 
 
+atpval=(np.arange(200)+1)*0.01#0-2
+iappval=np.arange(150)*0.1#0-15
 
-#for atp
-#for atp in np.arange(3)+1:
-n=100
-atp=1
 #Iapp =  4*amp*(10**-6) * cm ** -2 #*amp*meter**-2 #
 #atp = 1.5883100381194408
-PY=NeuronGroup(1,eq_PY,method='rk4',threshold='V>20*mV', reset='V=0*mV' )
+duration=0.5*second
+
+#
+#net.run()
+    #can run a for loop seperately
+    #for parameter
+
+#for n_str in str_freqs:
+#    # restore network
+#    net.restore()
+    #str_freqs = [0, 10, 20, 30, 40, 50, 60] * Hz
+     
+    #run duration again
+iapp=3
+atp=1
+
+PY=NeuronGroup(1,eq_PY,method='rk4',threshold='V>20*mV')
 PY.V = '-65*mvolt'
 PY.h = '0.9932525096349422'
 PY.m = '0.022083418537191028'
 PY.n = '0.05182107474228339'
 PY.Na = '((2*0.0004)*(2-atp)/(atp*2*0.00000006))**(1.0/3)*(mM)'
 PY.ATP = 'atp*(mM)'
-PY.Iapp = 'np.arange(n)*amp*(10**-6) * cm ** -2'
+PY.Iapp = 'iapp*amp*(10**-6) * cm ** -2'
 
 #ATP = 2*2*0.0004/(2*0.0004+2*0.00000006*Na*Na*Na)
    # Na = ((2*0.0004)*(2-ATP)/(ATP*2*0.00000006))**(1/3)
-
 #PY.h = '0+0.05*rand()'
 #PY.m = '0+0.05*rand()'
 #PY.n = '0+0.05*rand()'
 #PY.m = '0+0.05*rand()'
-
 V1=StateMonitor(PY,'V',record=[0])
 event_mon = SpikeMonitor(PY) #see if I can record variables
-#    
-run(0.5*second)
 
-#spike_dict = event_mon.spike_trains()
+net = Network(PY, V1, event_mon) # create network object so we don't include objects later
+#Net = Network(NG, monitor) #include neuron variables and monitors, stores net variable
+
+
+net.run(duration) # generate spikes
+net.store()
+k=0
+bndry=np.zeros([np.size(atpval),2])
+p=-1
+spk=0
+#for atp in atpval:
+#    p=p+1
+#    while spk==0 and k<150 :
+#        iapp=iappval[k]
+#        net.run(duration)
+#        spike_dict = event_mon.spike_trains()
+#        if np.size(spike_dict[0])>0:
+#            bndry[p,:]= [atp, iapp]
+#            spk=1
+#        net.restore()
+#        k=k+1
+
+figure()
+plot(bndry[:,1], bndry[:,0])
+xlabel('ATP')
+ylabel('Iapp')
+
 #spike=0
 #neur=0
 ##find the first spike in the neuron group
@@ -104,11 +140,11 @@ run(0.5*second)
 #    neur=neur+1
     
 
-figure()
-plot(V1.t/second,V1.V[0]/volt)
-xlabel('Time (s)')
-ylabel('Membrane potential (V)')
-title('PY cell')
+#figure()
+#plot(V1.t/second,V1.V[0]/volt)
+#xlabel('Time (s)')
+#ylabel('Membrane potential (V)')
+#title('PY cell')
     
     #    figure()
     #    plot(I1.t/second,I1.IL[0],label='L')
@@ -117,3 +153,21 @@ title('PY cell')
     #    plot(I1.t/second,I4.IAR[0],label='AR')
     #    title('Synaptic currents')
 #    legend()
+    
+    
+    
+    
+#net = Network(P_stn, MP_stn, P_gpe, MP_gpe, P_dbs, MP_dbs) # create network object so we don't include objects later
+#net.run(duration) # generate spikes
+#Net = Network(NG, monitor) #include neuron variables and monitors, stores net variable
+#net.store()
+#net.run()
+    #can run a for loop seperately
+    #for parameter
+#
+#for n_str in str_freqs:
+#    # restore network
+#    net.restore()
+    #str_freqs = [0, 10, 20, 30, 40, 50, 60] * Hz
+     
+    #run duration again
